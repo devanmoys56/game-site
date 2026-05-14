@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Action Rush 1</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+        }
+        
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            color: white;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        
+        canvas {
+            border: 3px solid #667eea;
+            background: #000;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        
+        .stats {
+            color: white;
+            font-size: 1.2em;
+            margin: 20px 0;
+        }
+        
+        .controls {
+            margin: 20px 0;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #764ba2;
+            transform: scale(1.05);
+        }
+        
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 8px 15px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-btn">← Back</a>
+    <div class="container">
+        <h1>Action Rush 1 ⚡</h1>
+        <div class="stats">
+            Score: <span id="score">0</span> | Level: <span id="level">1</span>
+        </div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div class="controls">
+            <button onclick="startGame()">Start</button>
+            <button onclick="pauseGame()">Pause</button>
+            <button onclick="resetGame()">Reset</button>
+        </div>
+        <p style="color: white; margin-top: 20px;">Click or press SPACE to shoot!</p>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let score = 0;
+        let level = 1;
+        let gameRunning = false;
+        let gamePaused = false;
+        let gameLoop = null;
+        let enemies = [];
+        let projectiles = [];
+        
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height - 40,
+            width: 30,
+            height: 30,
+            speed: 5
+        };
+        
+        const keys = {};
+        
+        function drawGame() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw player
+            ctx.fillStyle = '#00ff00';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            
+            // Draw enemies
+            ctx.fillStyle = '#ff0000';
+            enemies.forEach(enemy => {
+                ctx.fillRect(enemy.x, enemy.y, 20, 20);
+            });
+            
+            // Draw projectiles
+            ctx.fillStyle = '#ffff00';
+            projectiles.forEach(proj => {
+                ctx.fillRect(proj.x, proj.y, 5, 10);
+            });
+        }
+        
+        function updateGame() {
+            if (!gameRunning || gamePaused) return;
+            
+            // Player movement
+            if (keys['a'] || keys['ArrowLeft']) player.x -= player.speed;
+            if (keys['d'] || keys['ArrowRight']) player.x += player.speed;
+            
+            // Bounds
+            player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
+            
+            // Spawn enemies
+            if (Math.random() < 0.02) {
+                enemies.push({
+                    x: Math.random() * (canvas.width - 20),
+                    y: 0,
+                    speed: 1 + level * 0.5
+                });
+            }
+            
+            // Update enemies
+            enemies.forEach((enemy, idx) => {
+                enemy.y += enemy.speed;
+                if (enemy.y > canvas.height) {
+                    enemies.splice(idx, 1);
+                }
+            });
+            
+            // Update projectiles
+            projectiles.forEach((proj, idx) => {
+                proj.y -= 5;
+                if (proj.y < 0) projectiles.splice(idx, 1);
+            });
+            
+            // Collision detection
+            projectiles.forEach((proj, pIdx) => {
+                enemies.forEach((enemy, eIdx) => {
+                    if (proj.x < enemy.x + 20 && proj.x + 5 > enemy.x &&
+                        proj.y < enemy.y + 20 && proj.y + 10 > enemy.y) {
+                        projectiles.splice(pIdx, 1);
+                        enemies.splice(eIdx, 1);
+                        score += 10;
+                    }
+                });
+            });
+            
+            if (score > level * 100) level++;
+            document.getElementById('score').textContent = score;
+            document.getElementById('level').textContent = level;
+            
+            drawGame();
+        }
+        
+        function shoot() {
+            projectiles.push({
+                x: player.x + player.width / 2,
+                y: player.y
+            });
+        }
+        
+        function startGame() {
+            gameRunning = true;
+            gamePaused = false;
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(updateGame, 30);
+        }
+        
+        function pauseGame() {
+            gamePaused = !gamePaused;
+        }
+        
+        function resetGame() {
+            gameRunning = false;
+            if (gameLoop) clearInterval(gameLoop);
+            score = 0;
+            level = 1;
+            enemies = [];
+            projectiles = [];
+            document.getElementById('score').textContent = score;
+            document.getElementById('level').textContent = level;
+            drawGame();
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            if (e.key === ' ') {
+                e.preventDefault();
+                if (gameRunning) shoot();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+        
+        canvas.addEventListener('click', () => {
+            if (gameRunning) shoot();
+        });
+        
+        drawGame();
+    </script>
+</body>
+</html>

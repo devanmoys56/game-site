@@ -204,18 +204,15 @@ function createGameHTML(gameId, gameName, category) {
         function updateGame() {
             if (!gameRunning || gamePaused) return;
             
-            // Simple game mechanics - increment score
             score += Math.floor(Math.random() * 5);
             document.getElementById('score').textContent = score;
             
-            // Level up every 1000 points
             if (score > 0 && score % 1000 === 0) {
                 level++;
                 document.getElementById('level').textContent = level;
             }
         }
         
-        // Keyboard controls
         document.addEventListener('keydown', (e) => {
             if (gameRunning && e.key === ' ') {
                 e.preventDefault();
@@ -240,10 +237,10 @@ const allGames = [];
 // Generate games for each category
 for (const [category, count] of Object.entries(gameCategories)) {
   for (let i = 1; i <= count; i++) {
-    const gameId = `${category.toLowerCase().replace(/\s+/g, '-')}-${i}`;
-    const gameName = `${category} Game ${i}`;
+    const gameId = category.toLowerCase().replace(/\s+/g, '-') + '-' + i;
+    const gameName = category + ' Game ' + i;
     
-    const filePath = path.join(gamesDir, `${gameId}.html`);
+    const filePath = path.join(gamesDir, gameId + '.html');
     const html = createGameHTML(gameId, gameName, category);
     
     fs.writeFileSync(filePath, html);
@@ -259,276 +256,50 @@ for (const [category, count] of Object.entries(gameCategories)) {
 }
 
 // Generate index.html
-const generateIndex = () => {
-  const gamesByCategory = {};
+const gamesByCategory = {};
+
+allGames.forEach(game => {
+  if (!gamesByCategory[game.category]) {
+    gamesByCategory[game.category] = [];
+  }
+  gamesByCategory[game.category].push(game);
+});
+
+let categoriesHtml = '';
+for (const category in gamesByCategory) {
+  const games = gamesByCategory[category];
+  let gamesHtml = '';
   
-  allGames.forEach(game => {
-    if (!gamesByCategory[game.category]) {
-      gamesByCategory[game.category] = [];
-    }
-    gamesByCategory[game.category].push(game);
-  });
+  for (const game of games) {
+    gamesHtml += '                    <a href="games/' + game.id + '.html" class="game-card" data-title="' + game.title.toLowerCase() + '" data-category="' + category.toLowerCase() + '">\n';
+    gamesHtml += '                        <div class="game-icon">' + game.emoji + '</div>\n';
+    gamesHtml += '                        <div class="game-info">\n';
+    gamesHtml += '                            <h3>' + game.title + '</h3>\n';
+    gamesHtml += '                            <a href="games/' + game.id + '.html" class="play-btn">Play Now</a>\n';
+    gamesHtml += '                        </div>\n';
+    gamesHtml += '                    </a>\n';
+  }
   
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Site - ${allGames.length}+ Games!</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-        }
-        
-        h1 {
-            font-size: 3em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        .subtitle {
-            font-size: 1.3em;
-            opacity: 0.9;
-            margin-bottom: 20px;
-        }
-        
-        .game-count {
-            background: rgba(0,0,0,0.2);
-            padding: 15px 40px;
-            border-radius: 50px;
-            display: inline-block;
-            font-size: 1.2em;
-            margin-bottom: 30px;
-        }
-        
-        .search-container {
-            margin: 30px 0;
-            text-align: center;
-        }
-        
-        #searchInput {
-            width: 100%;
-            max-width: 600px;
-            padding: 15px 25px;
-            font-size: 1.1em;
-            border: none;
-            border-radius: 50px;
-            outline: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-        
-        .category {
-            margin-bottom: 50px;
-        }
-        
-        .category-title {
-            color: white;
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid rgba(255,255,255,0.3);
-        }
-        
-        .games-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 15px;
-            margin-bottom: 40px;
-        }
-        
-        .game-card {
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            transition: transform 0.3s, box-shadow 0.3s;
-            cursor: pointer;
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .game-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.3);
-        }
-        
-        .game-icon {
-            width: 100%;
-            height: 90px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5em;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .game-info {
-            padding: 12px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .game-info h3 {
-            margin-bottom: 8px;
-            color: #333;
-            font-size: 0.85em;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        .play-btn {
-            display: inline-block;
-            background: #667eea;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-size: 0.8em;
-            text-align: center;
-            margin-top: auto;
-            transition: background 0.3s;
-        }
-        
-        .play-btn:hover {
-            background: #764ba2;
-        }
-        
-        footer {
-            text-align: center;
-            color: white;
-            margin-top: 60px;
-            padding-top: 30px;
-            border-top: 1px solid rgba(255,255,255,0.3);
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        .results-info {
-            color: white;
-            text-align: center;
-            margin: 20px 0;
-            font-size: 1.1em;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>🎮 Game Site</h1>
-            <p class="subtitle">The Ultimate Game Collection</p>
-            <div class="game-count">🎯 ${allGames.length}+ Games Available</div>
-        </header>
-        
-        <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search games by name or category...">
-        </div>
-        
-        <div class="results-info" id="resultsInfo"></div>
-        
-        <div id="gamesContainer">
-${Object.entries(gamesByCategory).map(([category, games]) => `            <div class="category" data-category="${category.toLowerCase()}">
-                <h2 class="category-title">${category} (${games.length})</h2>
-                <div class="games-grid">
-${games.map(game => `                    <a href="games/${game.id}.html" class="game-card" data-title="${game.title.toLowerCase()}" data-category="${category.toLowerCase()}">
-                        <div class="game-icon">${game.emoji}</div>
-                        <div class="game-info">
-                            <h3>${game.title}</h3>
-                            <a href="games/${game.id}.html" class="play-btn">Play Now</a>
-                        </div>
-                    </a>
-`).join('')}                </div>
-            </div>
-`).join('')}        </div>
-        
-        <footer>
-            <p>&copy; 2026 Game Site. Enjoy ${allGames.length}+ amazing games! 🎉</p>
-            <p>Latest update: Generated with ${gameCount} games across ${Object.keys(gamesByCategory).length} categories</p>
-        </footer>
-    </div>
-    
-    <script>
-        const searchInput = document.getElementById('searchInput');
-        const gameCards = document.querySelectorAll('.game-card');
-        const categories = document.querySelectorAll('.category');
-        
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase().trim();
-            let totalMatches = 0;
-            
-            categories.forEach(category => {
-                let visibleCards = 0;
-                const cards = category.querySelectorAll('.game-card');
-                
-                cards.forEach(card => {
-                    const title = card.dataset.title;
-                    const categoryName = card.dataset.category;
-                    
-                    if (title.includes(searchTerm) || categoryName.includes(searchTerm) || searchTerm === '') {
-                        card.classList.remove('hidden');
-                        visibleCards++;
-                        totalMatches++;
-                    } else {
-                        card.classList.add('hidden');
-                    }
-                });
-                
-                if (visibleCards > 0 || searchTerm === '') {
-                    category.classList.remove('hidden');
-                } else {
-                    category.classList.add('hidden');
-                }
-            });
-            
-            const resultsInfo = document.getElementById('resultsInfo');
-            if (searchTerm === '') {
-                resultsInfo.textContent = '';
-            } else {
-                resultsInfo.textContent = \`Found \${totalMatches} game(s) matching "\${searchTerm}"\`;
-            }
-        });
-    </script>
-</body>
-</html>`;
+  categoriesHtml += '            <div class="category" data-category="' + category.toLowerCase() + '">\n';
+  categoriesHtml += '                <h2 class="category-title">' + category + ' (' + games.length + ')</h2>\n';
+  categoriesHtml += '                <div class="games-grid">\n';
+  categoriesHtml += gamesHtml;
+  categoriesHtml += '                </div>\n';
+  categoriesHtml += '            </div>\n';
+}
 
-  fs.writeFileSync(path.join(__dirname, 'public', 'index.html'), html);
-};
+const html = '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Game Site - ' + allGames.length + '+ Games!</title>\n    <style>\n        * {\n            margin: 0;\n            padding: 0;\n            box-sizing: border-box;\n        }\n        \n        body {\n            font-family: \'Arial\', sans-serif;\n            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n            min-height: 100vh;\n            padding: 20px;\n        }\n        \n        .container {\n            max-width: 1400px;\n            margin: 0 auto;\n        }\n        \n        header {\n            text-align: center;\n            color: white;\n            margin-bottom: 40px;\n        }\n        \n        h1 {\n            font-size: 3em;\n            margin-bottom: 10px;\n            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);\n        }\n        \n        .subtitle {\n            font-size: 1.3em;\n            opacity: 0.9;\n            margin-bottom: 20px;\n        }\n        \n        .game-count {\n            background: rgba(0,0,0,0.2);\n            padding: 15px 40px;\n            border-radius: 50px;\n            display: inline-block;\n            font-size: 1.2em;\n            margin-bottom: 30px;\n        }\n        \n        .search-container {\n            margin: 30px 0;\n            text-align: center;\n        }\n        \n        #searchInput {\n            width: 100%;\n            max-width: 600px;\n            padding: 15px 25px;\n            font-size: 1.1em;\n            border: none;\n            border-radius: 50px;\n            outline: none;\n            box-shadow: 0 4px 10px rgba(0,0,0,0.2);\n        }\n        \n        .category {\n            margin-bottom: 50px;\n        }\n        \n        .category-title {\n            color: white;\n            font-size: 1.8em;\n            margin-bottom: 20px;\n            padding-bottom: 10px;\n            border-bottom: 2px solid rgba(255,255,255,0.3);\n        }\n        \n        .games-grid {\n            display: grid;\n            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));\n            gap: 15px;\n            margin-bottom: 40px;\n        }\n        \n        .game-card {\n            background: white;\n            border-radius: 10px;\n            overflow: hidden;\n            box-shadow: 0 4px 6px rgba(0,0,0,0.2);\n            transition: transform 0.3s, box-shadow 0.3s;\n            cursor: pointer;\n            text-decoration: none;\n            color: inherit;\n            display: flex;\n            flex-direction: column;\n        }\n        \n        .game-card:hover {\n            transform: translateY(-8px);\n            box-shadow: 0 8px 15px rgba(0,0,0,0.3);\n        }\n        \n        .game-icon {\n            width: 100%;\n            height: 90px;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n            font-size: 2.5em;\n            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n        }\n        \n        .game-info {\n            padding: 12px;\n            flex: 1;\n            display: flex;\n            flex-direction: column;\n        }\n        \n        .game-info h3 {\n            margin-bottom: 8px;\n            color: #333;\n            font-size: 0.85em;\n            overflow: hidden;\n            text-overflow: ellipsis;\n            white-space: nowrap;\n        }\n        \n        .play-btn {\n            display: inline-block;\n            background: #667eea;\n            color: white;\n            padding: 6px 12px;\n            border-radius: 5px;\n            text-decoration: none;\n            font-size: 0.8em;\n            text-align: center;\n            margin-top: auto;\n            transition: background 0.3s;\n        }\n        \n        .play-btn:hover {\n            background: #764ba2;\n        }\n        \n        footer {\n            text-align: center;\n            color: white;\n            margin-top: 60px;\n            padding-top: 30px;\n            border-top: 1px solid rgba(255,255,255,0.3);\n        }\n        \n        .hidden {\n            display: none !important;\n        }\n        \n        .results-info {\n            color: white;\n            text-align: center;\n            margin: 20px 0;\n            font-size: 1.1em;\n        }\n    </style>\n</head>\n<body>\n    <div class="container">\n        <header>\n            <h1>🎮 Game Site</h1>\n            <p class="subtitle">The Ultimate Game Collection</p>\n            <div class="game-count">🎯 ' + allGames.length + '+ Games Available</div>\n        </header>\n        \n        <div class="search-container">\n            <input type="text" id="searchInput" placeholder="Search games by name or category...">\n        </div>\n        \n        <div class="results-info" id="resultsInfo"></div>\n        \n        <div id="gamesContainer">\n' + categoriesHtml + '        </div>\n        \n        <footer>\n            <p>&copy; 2026 Game Site. Enjoy ' + allGames.length + '+ amazing games! 🎉</p>\n            <p>Latest update: Generated with ' + gameCount + ' games across ' + Object.keys(gamesByCategory).length + ' categories</p>\n        </footer>\n    </div>\n    \n    <script>\n        const searchInput = document.getElementById("searchInput");\n        const gameCards = document.querySelectorAll(".game-card");\n        const categories = document.querySelectorAll(".category");\n        \n        searchInput.addEventListener("input", (e) => {\n            const searchTerm = e.target.value.toLowerCase().trim();\n            let totalMatches = 0;\n            \n            categories.forEach(category => {\n                let visibleCards = 0;\n                const cards = category.querySelectorAll(".game-card");\n                \n                cards.forEach(card => {\n                    const title = card.dataset.title;\n                    const categoryName = card.dataset.category;\n                    \n                    if (title.includes(searchTerm) || categoryName.includes(searchTerm) || searchTerm === "") {\n                        card.classList.remove("hidden");\n                        visibleCards++;\n                        totalMatches++;\n                    } else {\n                        card.classList.add("hidden");\n                    }\n                });\n                \n                if (visibleCards > 0 || searchTerm === "") {\n                    category.classList.remove("hidden");\n                } else {\n                    category.classList.add("hidden");\n                }\n            });\n            \n            const resultsInfo = document.getElementById("resultsInfo");\n            if (searchTerm === "") {\n                resultsInfo.textContent = "";\n            } else {\n                resultsInfo.textContent = "Found " + totalMatches + " game(s) matching " + JSON.stringify(searchTerm);\n            }\n        });\n    </script>\n</body>\n</html>';\
 
-generateIndex();
+fs.writeFileSync(path.join(__dirname, 'public', 'index.html'), html);
 
-console.log('✅ DONE! Generated all games!');
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log(\`📊 Total Games Created: \${gameCount}\`);
-console.log(\`📁 Categories: \${Object.keys(gameCategories).length}\`);
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('✨ HOW TO RUN:');
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('1. npm install');
-console.log('2. npm start');
-console.log('3. Open http://localhost:3000');
+console.log('✅ DONE! Generated all games!');\
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');\
+console.log('📊 Total Games Created: ' + gameCount);\
+console.log('📁 Categories: ' + Object.keys(gameCategories).length);\
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');\
+console.log('✨ HOW TO RUN:');\
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');\
+console.log('1. npm install');\
+console.log('2. npm start');\
+console.log('3. Open http://localhost:3000');\
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
